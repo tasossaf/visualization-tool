@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maritime Cyber & Navigational Risk SLR — Knowledge Discovery Dashboard</title>
+    <!-- Leaflet & Cluster CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
+    <style>
+        * { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; }
+        
+        #top-bar { background: #1e293b; border-bottom: 2px solid #38bdf8; padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; }
+        #top-header { display: flex; align-items: center; justify-content: space-between; }
+        #top-header h1 { margin: 0; font-size: 1.15rem; color: #38bdf8; }
+        .badge-count { background: #0284c7; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; border: 1px solid #38bdf8; }
+        
+        #pattern-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+        .tab-btn { background: #0f172a; color: #94a3b8; border: 1px solid #334155; padding: 6px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
+        .tab-btn:hover { background: #1e293b; color: #38bdf8; border-color: #38bdf8; }
+        .tab-btn.active { background: #0284c7; color: #ffffff; border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+
+        #main-container { display: flex; height: calc(100vh - 105px); }
+        #map { flex: 1; height: 100%; background: #020617; }
+        #sidebar { width: 360px; background: #1e293b; border-left: 1px solid #334155; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+        
+        .panel-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
+        .panel-box h3 { margin: 0 0 10px 0; font-size: 0.85rem; color: #38bdf8; text-transform: uppercase; letter-spacing: 0.5px; }
+        
+        .insight-card { background: rgba(56, 189, 248, 0.08); border-left: 4px solid #38bdf8; padding: 10px; border-radius: 0 6px 6px 0; font-size: 0.8rem; line-height: 1.45; }
+        .insight-card h4 { margin: 0 0 4px 0; color: #38bdf8; font-size: 0.88rem; }
+
+        .control-row { font-size: 0.8rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .color-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        
+        .leaflet-popup-content-wrapper { background: #1e293b !important; color: #f8fafc !important; border: 1px solid #38bdf8; border-radius: 10px !important; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        .leaflet-popup-tip { background: #1e293b !important; }
+        .popup-card { font-size: 0.8rem; line-height: 1.45; max-width: 320px; padding: 4px; }
+        .popup-card h4 { margin: 0 0 6px 0; font-size: 0.95rem; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+        .popup-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: bold; color: #fff; margin-bottom: 6px; }
+        .pattern-banner { background: rgba(56, 189, 248, 0.15); border-left: 3px solid #38bdf8; padding: 6px 10px; margin-top: 8px; font-size: 0.75rem; border-radius: 0 4px 4px 0; }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <div id="top-header">
+            <h1>Maritime Cyber & Navigational Risk SLR — Knowledge Discovery Dashboard</h1>
+            <div class="badge-count" id="active-count">Active Papers: 40 / 40</div>
+        </div>
+        <!-- Dynamic Pattern Tabs -->
+        <div id="pattern-tabs">
+            <button class="tab-btn active" id="btn-all" onclick="selectPattern('ALL')">🌐 All Patterns (40 Papers)</button>
+            <button class="tab-btn" id="btn-p1" onclick="selectPattern('Pattern 1')">Pattern 1: Mega-Ports & Estuaries</button>
+            <button class="tab-btn" id="btn-p2" onclick="selectPattern('Pattern 2')">Pattern 2: Chokepoints & Straits</button>
+            <button class="tab-btn" id="btn-p3" onclick="selectPattern('Pattern 3')">Pattern 3: European Coastal & Cyber Integrity</button>
+            <button class="tab-btn" id="btn-p4" onclick="selectPattern('Pattern 4')">Pattern 4: Arctic Routes & Polar Hazards</button>
+            <button class="tab-btn" id="btn-p5" onclick="selectPattern('Pattern 5')">Pattern 5: Asymmetric & Global Corridors</button>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div id="map"></div>
+        <div id="sidebar">
+            <div class="panel-box">
+                <h3>💡 Dynamic Pattern Insight</h3>
+                <div class="insight-card" id="insight-box">
+                    <h4>Select a Pattern to explore literature insights</h4>
+                    <p id="insight-text">Click on any pattern tab above to zoom into specific geospatial clusters, discover dominant methodologies, and identify research gaps.</p>
+                </div>
+            </div>
+
+            <div class="panel-box">
+                <h3>🔥 Density & Visualization Mode</h3>
+                <div class="control-row"><input type="checkbox" id="toggle-heatmap" checked> <label for="toggle-heatmap">Enable Dynamic Heatmap Layer</label></div>
+                <div class="control-row"><input type="checkbox" id="toggle-heatmap-only"> <label for="toggle-heatmap-only" style="color:#38bdf8; font-weight:bold;">Heatmap Only View (Hide Markers)</label></div>
+                <div class="control-row"><input type="checkbox" id="toggle-cluster" checked> <label for="toggle-cluster">Enable Marker Clustering</label></div>
+            </div>
+
+            <div class="panel-box">
+                <h3>⚠️ Axis 1: Threat Categories</h3>
+                <div class="control-row"><input type="checkbox" class="filter-threat" value="Collision & COLREGs" checked> <span class="color-dot" style="background:#3b82f6;"></span> Collision & COLREGs</div>
+                <div class="control-row"><input type="checkbox" class="filter-threat" value="Cyber-Attacks & Spoofing" checked> <span class="color-dot" style="background:#ef4444;"></span> Cyber-Attacks & Spoofing</div>
+                <div class="control-row"><input type="checkbox" class="filter-threat" value="Grounding & UKC" checked> <span class="color-dot" style="background:#eab308;"></span> Grounding & UKC</div>
+                <div class="control-row"><input type="checkbox" class="filter-threat" value="Environmental & Ice Hazards" checked> <span class="color-dot" style="background:#06b6d4;"></span> Environmental & Ice</div>
+                <div class="control-row"><input type="checkbox" class="filter-threat" value="Maritime Piracy" checked> <span class="color-dot" style="background:#f97316;"></span> Maritime Piracy</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet & Cluster Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
+
+    <!-- Embedded High-Performance Leaflet.heat Engine (Zero-CDN Dependency) -->
+    <script>
+    (function () {
+        function simpleheat(canvas) {
+            if (!(this instanceof simpleheat)) return new simpleheat(canvas);
+            this._canvas = canvas = typeof canvas === 'string' ? document.getElementById(canvas) : canvas;
+            this._ctx = canvas.getContext('2d');
+            this._width = canvas.width;
+            this._height = canvas.height;
+            this._max = 1;
+            this._data = [];
+        }
+        simpleheat.prototype = {
+            defaultRadius: 35,
+            defaultGradient: { 0.2: '#0000ff', 0.4: '#00ffff', 0.6: '#00ff00', 0.8: '#ffff00', 1.0: '#ff0000' },
+            data: function (data) { this._data = data; return this; },
+            max: function (max) { this._max = max; return this; },
+            add: function (point) { this._data.push(point); return this; },
+            clear: function () { this._data = []; return this; },
+            radius: function (r, blur) {
+                blur = blur === undefined ? 18 : blur;
+                var circle = this._circle = document.createElement('canvas'),
+                    ctx = circle.getContext('2d'),
+                    r2 = this._r = r + blur;
+                circle.width = circle.height = r2 * 2;
+                ctx.shadowOffsetX = ctx.shadowOffsetY = r2 * 2;
+                ctx.shadowBlur = blur;
+                ctx.shadowColor = 'black';
+                ctx.beginPath();
+                ctx.arc(-r2, -r2, r, 0, Math.PI * 2, true);
+                ctx.closePath();
+                ctx.fill();
+                return this;
+            },
+            resize: function () {
+                this._width = this._canvas.width;
+                this._height = this._canvas.height;
+            },
+            gradient: function (grad) {
+                var canvas = document.createElement('canvas'),
+                    ctx = canvas.getContext('2d'),
+                    gradient = ctx.createLinearGradient(0, 0, 0, 256);
+                canvas.width = 1; canvas.height = 256;
+                for (var i in grad) { gradient.addColorStop(+i, grad[i]); }
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 1, 256);
+                this._grad = ctx.getImageData(0, 0, 1, 256).data;
+                return this;
+            },
+            draw: function (minOpacity) {
+                if (!this._circle) this.radius(this.defaultRadius);
+                if (!this._grad) this.gradient(this.defaultGradient);
+                var ctx = this._ctx;
+                ctx.clearRect(0, 0, this._width, this._height);
+                for (var i = 0, len = this._data.length, p; i < len; i++) {
+                    p = this._data[i];
+                    ctx.globalAlpha = Math.min(Math.max(p[2] / this._max, minOpacity === undefined ? 0.35 : minOpacity), 1);
+                    ctx.drawImage(this._circle, p[0] - this._r, p[1] - this._r);
+                }
+                var colored = ctx.getImageData(0, 0, this._width, this._height);
+                this._colorize(colored.data, this._grad);
+                ctx.putImageData(colored, 0, 0);
+                return this;
+            },
+            _colorize: function (pixels, gradient) {
+                for (var i = 0, len = pixels.length, j; i < len; i += 4) {
+                    j = pixels[i + 3] * 4;
+                    if (j) {
+                        pixels[i] = gradient[j];
+                        pixels[i + 1] = gradient[j + 1];
+                        pixels[i + 2] = gradient[j + 2];
+                    }
+                }
+            }
+        };
+
+        L.HeatLayer = (L.Layer || L.Class).extend({
+            initialize: function (latlngs, options) {
+                this._latlngs = latlngs;
+                L.setOptions(this, options);
+            },
+            setLatLngs: function (latlngs) {
+                this._latlngs = latlngs;
+                return this.redraw();
+            },
+            redraw: function () {
+                if (this._heat && !this._frame && this._map && !this._map._animating) {
+                    this._frame = L.Util.requestAnimFrame(this._draw, this, false);
+                }
+                return this;
+            },
+            onAdd: function (map) {
+                this._map = map;
+                if (!this._canvas) { this._initCanvas(); }
+                map._panes.overlayPane.appendChild(this._canvas);
+                map.on('moveend zoomend', this._reset, this);
+                this._reset();
+            },
+            onRemove: function (map) {
+                if (this._canvas && this._canvas.parentNode) {
+                    this._canvas.parentNode.removeChild(this._canvas);
+                }
+                map.off('moveend zoomend', this._reset, this);
+            },
+            addTo: function (map) {
+                map.addLayer(this);
+                return this;
+            },
+            _initCanvas: function () {
+                var canvas = this._canvas = L.DomUtil.create('canvas', 'leaflet-heatmap-layer leaflet-layer');
+                var size = this._map.getSize();
+                canvas.width = size.x;
+                canvas.height = size.y;
+                this._heat = simpleheat(canvas);
+                this._updateOptions();
+            },
+            _updateOptions: function () {
+                this._heat.radius(this.options.radius || 35, this.options.blur || 18);
+                if (this.options.gradient) { this._heat.gradient(this.options.gradient); }
+                if (this.options.max) { this._heat.max(this.options.max); }
+            },
+            _reset: function () {
+                var topLeft = this._map.containerPointToLayerPoint([0, 0]);
+                L.DomUtil.setPosition(this._canvas, topLeft);
+
+                var size = this._map.getSize();
+                if (this._heat._width !== size.x) {
+                    this._canvas.width = this._heat._width = size.x;
+                }
+                if (this._heat._height !== size.y) {
+                    this._canvas.height = this._heat._height = size.y;
+                }
+                this._draw();
+            },
+            _draw: function () {
+                if (!this._map) return;
+                var data = [],
+                    r = this._heat._r,
+                    size = this._map.getSize(),
+                    bounds = new L.Bounds(L.point([-r, -r]), size.add([r, r])),
+                    max = this.options.max === undefined ? 1 : this.options.max,
+                    maxZoom = this.options.maxZoom === undefined ? 12 : this.options.maxZoom,
+                    v = 1 / Math.pow(2, Math.max(0, Math.min(maxZoom - this._map.getZoom(), 12))),
+                    cellSize = r / 2,
+                    grid = [],
+                    i, len, pt, cell, x, y, k, latlng;
+
+                for (i = 0, len = this._latlngs.length; i < len; i++) {
+                    latlng = this._latlngs[i];
+                    pt = this._map.latLngToContainerPoint(latlng);
+                    if (bounds.contains(pt)) {
+                        x = Math.floor((pt.x + r) / cellSize);
+                        y = Math.floor((pt.y + r) / cellSize);
+                        k = (latlng[2] !== undefined ? +latlng[2] : 1) * v;
+
+                        grid[y] = grid[y] || [];
+                        cell = grid[y][x];
+
+                        if (!cell) {
+                            grid[y][x] = [pt.x, pt.y, k];
+                        } else {
+                            cell[0] = (cell[0] * cell[2] + pt.x * k) / (cell[2] + k);
+                            cell[1] = (cell[1] * cell[2] + pt.y * k) / (cell[2] + k);
+                            cell[2] += k;
+                        }
+                    }
+                }
+
+                for (i = 0, len = grid.length; i < len; i++) {
+                    if (grid[i]) {
+                        for (var j = 0, len2 = grid[i].length; j < len2; j++) {
+                            cell = grid[i][j];
+                            if (cell) {
+                                data.push([
+                                    Math.round(cell[0]),
+                                    Math.round(cell[1]),
+                                    Math.min(cell[2], max)
+                                ]);
+                            }
+                        }
+                    }
+                }
+
+                this._heat.data(data).draw(this.options.minOpacity);
+                this._frame = null;
+            }
+        });
+
+        L.heatLayer = function (latlngs, options) {
+            return new L.HeatLayer(latlngs, options);
+        };
+    })();
+    </script>
+
+    <script>
+        // Verbatim English Metadata for 40 Validated SLR Papers
+        const papersData = [
+  {
+    "paper_id": "Paper 2",
+    "title": "A novel framework of real-time regional collision risk prediction based on the RNN approach",
+    "authors": "Zhao Liu, Xinyue Wang, Yipeng Cai, Zhao Liu, Z.-J. Liu",
+    "year": 2020,
+    "venue": "Journal of Marine Science and Engineering",
+    "region": "Malacca Strait / Singapore",
+    "systems": "AIS",
+    "threats": "Ship-to-ship collisions",
+    "method": "Recurrent Neural Network (RNN), DBSCAN, Shapley Value",
+    "dss": "Collision Risk Index (CRI) DCPA/TCPA early warning",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 2", "Pattern 1"],
+    "lat": 1.29, "lng": 103.85
+  },
+  {
+    "paper_id": "Paper 5",
+    "title": "Leveraging HDBSCAN, LSTM and R-DTW for Proactive Detection and Collision Prediction in Maritime Traffic",
+    "authors": "Nitish Raj, Prabhat Kumar",
+    "year": 2025,
+    "venue": "Defence Science Journal",
+    "region": "Gulf of Mexico (Off Panama City, Florida)",
+    "systems": "AIS",
+    "threats": "Ship collisions, near-miss encounters, anomalous vessel behaviors",
+    "method": "HDBSCAN spatial clustering, LSTM trajectory prediction, Rhumb Line - DTW",
+    "dss": "Proactive collision risk warning & proximity detection DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 5", "Pattern 1"],
+    "lat": 28.15, "lng": -86.12
+  },
+  {
+    "paper_id": "Paper 7",
+    "title": "Spatiotemporal Risk Assessment of Fishing Grounds in Asian waters",
+    "authors": "Youfu Jing, Yang Liu",
+    "year": 2024,
+    "venue": "Marine Policy",
+    "region": "Northwest Pacific Ocean / Asian Fishing Grounds",
+    "systems": "AIS, Satellite Remote Sensing",
+    "threats": "Fishing vessel accidents, environmental & social hazards",
+    "method": "Spatial Analysis Method of Risk for Fishing Grounds (SAMRFG), AHP",
+    "dss": "Area-based fishing ground risk mapping & safety DSS",
+    "threat_category": "Environmental & Ice Hazards",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 5", "Pattern 1"],
+    "lat": 20.0, "lng": 125.0
+  },
+  {
+    "paper_id": "Paper 8",
+    "title": "Analysis of human reliability in detecting GPS spoofing on ECDIS in congested waterways under evidential reasoning and HEART approach",
+    "authors": "Yasin Burak Kurt, Esma Uflaz, Emre Akyuz, Rafet Emek Kurt, Osman Turan",
+    "year": 2025,
+    "venue": "Computers & Security",
+    "region": "Dover Strait / English Channel",
+    "systems": "ECDIS, GPS, GNSS, Radar",
+    "threats": "GPS spoofing, human error, overreliance on bridge automation",
+    "method": "HEART Human Reliability Analysis, Evidential Reasoning (ER)",
+    "dss": "Watchkeeper GPS spoofing detection unreliability quantification model",
+    "threat_category": "Cyber-Attacks & Spoofing",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 2", "Pattern 3"],
+    "lat": 51.12, "lng": 1.38
+  },
+  {
+    "paper_id": "Paper 14",
+    "title": "Preliminary design of a traffic separation scheme at the hub port of IKN: hydro-oceanographic analysis for navigational safety in the Makassar Strait",
+    "authors": "Ibnu Fauzi, Danang Ariyanto, Cahyarsi Murtiaji, Catur Indra Sukmana, Eny Cholishoh",
+    "year": 2025,
+    "venue": "Archives of Transport",
+    "region": "Makassar Strait, Indonesia (IKN Hub Port)",
+    "systems": "AIS, Tidal Stations, Numerical Hydrodynamic Modeling",
+    "threats": "Ship collisions, groundings, tidal current hazards",
+    "method": "Delft3D / MIKE 21 hydrodynamic current modeling, Probabilistic risk calculation",
+    "dss": "Traffic Separation Scheme (TSS) layout design DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 2", "Pattern 1"],
+    "lat": -1.26, "lng": 116.83
+  },
+  {
+    "paper_id": "Paper 19",
+    "title": "Exploring spatial non-stationarity of near-miss ship collisions from AIS data under the influence of sea fog using geographically weighted regression: A case study in the Bohai Sea, China",
+    "authors": "Shen Yongtian, et al.",
+    "year": 2023,
+    "venue": "Acta Oceanologica Sinica",
+    "region": "Bohai Sea, China",
+    "systems": "AIS, Satellite Sea Fog Sensors (AHI)",
+    "threats": "Near-miss collisions, sea fog visibility hazards",
+    "method": "Geographically Weighted Regression (GWR), Moran's I, Spatial correlation",
+    "dss": "Sea-fog navigation near-miss spatial risk index map",
+    "threat_category": "Environmental & Ice Hazards",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 38.5, "lng": 120.0
+  },
+  {
+    "paper_id": "Paper 22",
+    "title": "Navigational risk analysis based on GIS spatiotemporal trajectory mining: a case study in Nanjing Yangtze River Bridge waters",
+    "authors": "Huiyu Xia",
+    "year": 2021,
+    "venue": "Arabian Journal of Geosciences",
+    "region": "Nanjing Yangtze River Bridge waters, China",
+    "systems": "AIS, GIS",
+    "threats": "Pier collision, safety distance risk, traffic congestion, flood hazards",
+    "method": "Line-based Density Estimation (LDE), Spatiotemporal K-Means clustering",
+    "dss": "Bridge water level vs. pier collision 3D risk DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 32.11, "lng": 118.73
+  },
+  {
+    "paper_id": "Paper 23",
+    "title": "Real-time graph-based traffic complexity evaluation for intelligent maritime supervision using multi-source data fusion",
+    "authors": "Congcong Zhao, Yuxu Lu, Dong Yang, Tsz Leung Yip",
+    "year": 2026,
+    "venue": "Reliability Engineering & System Safety",
+    "region": "Shanghai Huangpu River, China",
+    "systems": "AIS, Video Surveillance",
+    "threats": "Traffic congestion, near-miss collisions in tight river bends",
+    "method": "Graph Neural Networks (GNN), YOLO & DeepSORT video tracking, DBSCAN",
+    "dss": "Real-time dynamic graph traffic complexity evaluation DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 31.23, "lng": 121.48
+  },
+  {
+    "paper_id": "Paper 25",
+    "title": "Probability of a ship becoming beset in ice along the Northern Sea Route – A Bayesian analysis of real-life data",
+    "authors": "Jarno Vanhatalo, Juri Huuhtanen, Martin Bergström, Inari Helle, Jussi Mäkinen, Pentti Kujala",
+    "year": 2021,
+    "venue": "Cold Regions Science and Technology",
+    "region": "Northern Sea Route, Arctic",
+    "systems": "AIS, Satellite Sea Ice Concentration Grids",
+    "threats": "Ice-besetting, extreme polar weather hazards",
+    "method": "Hierarchical Bayesian statistical modeling, Stan probabilistic programming",
+    "dss": "Ship ice-class besetting risk prediction DSS",
+    "threat_category": "Environmental & Ice Hazards",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 4"],
+    "lat": 74.0, "lng": 100.0
+  },
+  {
+    "paper_id": "Paper 27",
+    "title": "Enhancing collision avoidance in mixed waterborne transport: Human-mimic navigation and decision-making by autonomous vessels",
+    "authors": "R. Song, Rudy R. Negenborn, E. Papadimitriou, P. van Gelder",
+    "year": 2025,
+    "venue": "Ocean Engineering",
+    "region": "Port of Rotterdam, Netherlands",
+    "systems": "AIS, Autonomous Vessel Control (MPC, KM-DWA)",
+    "threats": "Mixed traffic collisions (MASS vs Manned vessels), COLREGs Rule 17 violations",
+    "method": "Model Predictive Control (MPC), Multi-Task Learning Seq2Seq-LSTM Attention",
+    "dss": "Human-like autonomous collision avoidance DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 3", "Pattern 1"],
+    "lat": 51.95, "lng": 4.14
+  },
+  {
+    "paper_id": "Paper 31",
+    "title": "A multi-ship encounter risk assessment model based on an improved vessel conflict ranking operator",
+    "authors": "X. Zhang, et al.",
+    "year": 2026,
+    "venue": "Ocean Engineering",
+    "region": "Outside Yangtze Estuary, China",
+    "systems": "AIS",
+    "threats": "Multi-ship encounters, coupling risk, false collision alarms",
+    "method": "Hierarchical Vessel Conflict Ranking Operator (HVCRO), CNN-BiLSTM",
+    "dss": "Multi-ship encounter risk filtering & warning DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 1"],
+    "lat": 31.0, "lng": 122.5
+  },
+  {
+    "paper_id": "Paper 38",
+    "title": "Machine Learning-Based Binary Classification Models for Low Ice-Class Vessels Navigation Risk Assessment",
+    "authors": "Y. Zhang, G. Li, J. Zhu, X. Cheng",
+    "year": 2025,
+    "venue": "Journal of Marine Science and Engineering",
+    "region": "Northeast Passage (NEP), Arctic",
+    "systems": "AIS, Sentinel-1 SAR imagery, AMSR2 Ice Concentration",
+    "threats": "Ice-caps/glacier hazards, low ice-class vessel vulnerability",
+    "method": "Ensemble Machine Learning (ExtraTrees, Random Forest, XGBoost), SAR negative sampling",
+    "dss": "High-resolution Arctic voyage planning & risk DSS",
+    "threat_category": "Environmental & Ice Hazards",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 4"],
+    "lat": 73.0, "lng": 80.0
+  },
+  {
+    "paper_id": "Paper 41",
+    "title": "A novel framework for regional collision risk identification based on AIS data",
+    "authors": "Liu et al.",
+    "year": 2019,
+    "venue": "Applied Ocean Research",
+    "region": "Northern Yellow Sea, China",
+    "systems": "AIS",
+    "threats": "Regional ship collisions, multi-vessel encounters",
+    "method": "DBSCAN clustering, Shapley Value game-theoretic risk attribution, SDOI",
+    "dss": "Cluster Collision Risk (CCR) identification system",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 38.0, "lng": 122.0
+  },
+  {
+    "paper_id": "Paper 42",
+    "title": "A novel regional ship collision risk assessment framework for multi-ship encounters in complex waters",
+    "authors": "Changhai Huang, Xueyan Wang, Hanyu Wang, Jialong Kong, Jingen Zhou",
+    "year": 2024,
+    "venue": "Ocean Engineering",
+    "region": "Yangtze Estuary, China",
+    "systems": "AIS",
+    "threats": "Multi-vessel encounters, regional risk buildup",
+    "method": "Directed Distance DBSCAN, Grid Risk Index (GRI), Thermodynamic visualization",
+    "dss": "Regional multi-ship collision risk monitoring DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 30.65, "lng": 122.01
+  },
+  {
+    "paper_id": "Paper 45",
+    "title": "Ship accessibility assessment based on POLARIS and icebreaking capabilities in Arctic area",
+    "authors": "Hailong Cui, Zhao Liu, Wenyang Xu, Xiyu Zhang, Li Zhou, Wengang Mao, Yaqing Shu",
+    "year": 2026,
+    "venue": "Journal of Transport Geography",
+    "region": "Arctic (Northeast & Northwest Passages)",
+    "systems": "AIS, Satellite Remote Sensing",
+    "threats": "Arctic navigation limits, icebound routes",
+    "method": "IMO POLARIS Risk Index Outcome (RIO), A* Path Planning on Polar Stereographic Grid",
+    "dss": "Spatiotemporal Arctic accessibility & transit DSS",
+    "threat_category": "Environmental & Ice Hazards",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 4"],
+    "lat": 76.0, "lng": 60.0
+  },
+  {
+    "paper_id": "Paper 49",
+    "title": "Path planning for large ships in inland waterways considering risk assessment of AIS data",
+    "authors": "D. Xu, X. Zhou, Y. Deng, P. Xin, X. Zhou",
+    "year": 2025,
+    "venue": "Ocean Engineering",
+    "region": "Chongqing Yangtze River segment, China",
+    "systems": "AIS, Electronic Nautical Charts (ENC)",
+    "threats": "Grounding, collisions in narrow channels, bank suction",
+    "method": "Piecewise improved A* algorithm, Dynamic Window Approach (DWA), CUSUM + DBSCAN",
+    "dss": "Risk-aware inland route planning & collision avoidance DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 1"],
+    "lat": 29.56, "lng": 106.55
+  },
+  {
+    "paper_id": "Paper 51",
+    "title": "Deep learning–based framework for regional risk assessment in a multi–ship encounter situation based on the transformer network",
+    "authors": "Dawei Gao, Yongsheng Zhu, Ke Yan, C. Guedes Soares",
+    "year": 2024,
+    "venue": "Reliability Engineering & System Safety",
+    "region": "Jiangsu segment of the Yangtze River, China",
+    "systems": "AIS",
+    "threats": "Multi-ship encounter collisions, dynamic trajectory variability",
+    "method": "Predictable Transformer Network, DBSCAN spatial clustering",
+    "dss": "Parallelized multi-step regional collision risk warning DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 31.87, "lng": 118.54
+  },
+  {
+    "paper_id": "Paper 54",
+    "title": "RISK ANALYSIS OF COLLISION BETWEEN PASSENGER FERRY AND CHEMICAL TANKER IN THE WESTERN ZONE OF THE BALTIC SEA",
+    "authors": "Marcin Przywarty et al",
+    "year": 2015,
+    "venue": "POLISH MARITIME RESEARCH",
+    "region": "Western Baltic Sea",
+    "systems": "AIS",
+    "threats": "Ferry-tanker collisions, structural damage, toxic gas/oil spills",
+    "method": "Stochastic Poisson/Extreme value traffic simulation, Minorsky damage model, ALOHA",
+    "dss": "Ferry-tanker collision probability & toxic gas threat DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 3"],
+    "lat": 54.5, "lng": 12.0
+  },
+  {
+    "paper_id": "Paper 55",
+    "title": "Risky Maritime Encounter Patterns via Clustering",
+    "authors": "M.F. Oruc, Y.C. Altan",
+    "year": 2023,
+    "venue": "Journal of Marine Science and Engineering",
+    "region": "Strait of Istanbul (Bosphorus), Turkey",
+    "systems": "AIS",
+    "threats": "Ship-to-ship collision risks, domain violation hazards in narrow chokepoints",
+    "method": "3D K-Means clustering, Bosporus site-specific statistical ship domain",
+    "dss": "Near-miss identification & 'grey zone' risk clustering DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 2"],
+    "lat": 41.1, "lng": 29.05
+  },
+  {
+    "paper_id": "Paper 56",
+    "title": "Risk of ship near collision scenarios off the coast of Portugal",
+    "authors": "H. Rong, A.P. Teixeira, C. Guedes Soares",
+    "year": 2019,
+    "venue": "European Safety and Reliability Conference",
+    "region": "Off the coast of Portugal",
+    "systems": "AIS",
+    "threats": "Ship-to-ship near-collisions, oil spill risk in TSS junctions",
+    "method": "Fujii & Tanaka Elliptical Ship Domain, Kernel Density Estimation (KDE)",
+    "dss": "Spatial near-collision hotspot identification & mapping DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 3"],
+    "lat": 38.72, "lng": -9.13
+  },
+  {
+    "paper_id": "Paper 57",
+    "title": "A novel analytic framework of real-time multi-vessel collision risk assessment for maritime traffic surveillance",
+    "authors": "R. Zhen, M. Riveiro, Y. Jin",
+    "year": 2017,
+    "venue": "Ocean Engineering",
+    "region": "Gothenburg, Sweden",
+    "systems": "AIS, VTS Radar",
+    "threats": "Multi-vessel encounter collisions, VTS operator cognitive overload",
+    "method": "DBSCAN spatial clustering, Dynamic DCPA/TCPA calculation, Exponential CRI",
+    "dss": "Real-time automated multi-vessel collision risk DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 3"],
+    "lat": 57.7, "lng": 11.97
+  },
+  {
+    "paper_id": "Paper 58",
+    "title": "Ship collision risk analysis: Modeling, visualization and prediction",
+    "authors": "R.W. Liu, et al.",
+    "year": 2022,
+    "venue": "Ocean Engineering",
+    "region": "Chengshantou waters, China",
+    "systems": "AIS",
+    "threats": "High-density multi-vessel collisions, unpredicted risk accumulation",
+    "method": "Quaternion Ship Domain (QSD-VCRO), ConvLSTM spatiotemporal prediction",
+    "dss": "Spatiotemporal collision risk visualization & forecasting DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 37.4, "lng": 122.5
+  },
+  {
+    "paper_id": "Paper 61",
+    "title": "Cyber threats to maritime SAR operations in the arctic: risks from public data",
+    "authors": "H. Karahalios",
+    "year": 2025,
+    "venue": "Journal of Transportation Security",
+    "region": "Northeast Passage, Arctic",
+    "systems": "AIS, GPS, ECDIS, GMDSS, Satellite Comms",
+    "threats": "GPS spoofing, communication jamming, SAR mission delays",
+    "method": "STPA-SafeSec joint safety-security modeling, Fuzzy AHP, Paris MoU PSC database mining",
+    "dss": "Arctic Search and Rescue cyber-physical risk assessment DSS",
+    "threat_category": "Cyber-Attacks & Spoofing",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 4", "Pattern 3"],
+    "lat": 71.16, "lng": 25.98
+  },
+  {
+    "paper_id": "Paper 64",
+    "title": "An expert-based method for the risk assessment of anomalous maritime transportation data",
+    "authors": "Clément Iphar, Aldo Napoli, Cyril Ray",
+    "year": 2020,
+    "venue": "Applied Ocean Research",
+    "region": "Bay of Brest, France",
+    "systems": "AIS, RADAR",
+    "threats": "AIS message falsification/spoofing, identity theft, collisions, groundings",
+    "method": "EBIOS cybersecurity methodology, Rule-based anomaly flag engine",
+    "dss": "DeAIS project spatiotemporal AIS integrity & risk DSS",
+    "threat_category": "Cyber-Attacks & Spoofing",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 3"],
+    "lat": 48.39, "lng": -4.48
+  },
+  {
+    "paper_id": "Paper 65",
+    "title": "Data integrity assessment for maritime anomaly detection",
+    "authors": "Clément Iphar, Cyril Ray, Aldo Napoli",
+    "year": 2020,
+    "venue": "Expert Systems With Applications",
+    "region": "Brest roadstead, France",
+    "systems": "AIS, Satellite AIS",
+    "threats": "AIS spoofing, MMSI/IMO quadruplet tampering, land positions, ubiquity",
+    "method": "4-order hierarchical predicate logic engine (935 integrity items)",
+    "dss": "Real-time AIS data veracity verification DSS",
+    "threat_category": "Cyber-Attacks & Spoofing",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 3"],
+    "lat": 48.3, "lng": -4.4
+  },
+  {
+    "paper_id": "Paper 66",
+    "title": "A Study on A Novel Collision Risk Prediction Map for Maritime Traffic Surveillance Based on Ship Domain",
+    "authors": "Van Quang Nguyen et al.",
+    "year": 2024,
+    "venue": "Journal of Maritime Science and Engineering",
+    "region": "Haiphong Port, Vietnam",
+    "systems": "AIS",
+    "threats": "Multi-ship encounter collisions in narrow, winding port approaches",
+    "method": "Heat Ship Domain (HSD) model, Asymmetric Gaussian KDE, DBSCAN clustering",
+    "dss": "Haiphong port 2D collision risk prediction heatmap DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 2", "Pattern 1"],
+    "lat": 20.86, "lng": 106.68
+  },
+  {
+    "paper_id": "Paper 67",
+    "title": "Evaluating the Underkeel Clearance of Historic Vessel Transits in the Southwest Pass of the Mississippi River",
+    "authors": "Brandan M. Scully, David L. Young",
+    "year": 2021,
+    "venue": "Journal of Waterway, Port, Coastal, and Ocean Engineering",
+    "region": "Southwest Pass, Mississippi River, USA",
+    "systems": "AIS, eHydro bathymetry, NOAA tide forecasts",
+    "threats": "Vessel grounding, Underkeel Clearance (UKC) loss, channel shoaling",
+    "method": "Multi-source data fusion (AIS + Customs draft + NOAA tides), Swept-path spatial overlap",
+    "dss": "USACE maintenance dredging & UKC grounding risk mitigation DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 5", "Pattern 1"],
+    "lat": 28.92, "lng": -89.42
+  },
+  {
+    "paper_id": "Paper 68",
+    "title": "A data-driven approach for ship-bridge collision candidate detection in bridge waterway",
+    "authors": "Liang Zhang, Pengfei Chen, Mengxia Li, Linying Chen, Junmin Mou",
+    "year": 2022,
+    "venue": "Ocean Engineering",
+    "region": "Sutong Bridge waterway, Yangtze River, China",
+    "systems": "AIS",
+    "threats": "Ship-bridge collisions, vessel collisions with bridge piers",
+    "method": "Kernel Density Estimation (KDE) pier domain, Linear & Non-Linear Velocity Obstacle (VO)",
+    "dss": "Ship-bridge collision candidate early warning DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 1"],
+    "lat": 31.77, "lng": 120.98
+  },
+  {
+    "paper_id": "Paper 74",
+    "title": "A novel maritime traffic complexity model based on ship trajectory prediction",
+    "authors": "Zhongming Xiao, Jiaxue Zhang, Chanshu Li, Wenjie Cao, Jun Yu, Feng Bo, Xinjian Wang",
+    "year": 2026,
+    "venue": "Ocean Engineering",
+    "region": "Laotieshan waterway, China",
+    "systems": "AIS",
+    "threats": "Multi-vessel encounter collisions, traffic complexity buildup",
+    "method": "Bi-GRU Seq2Seq with Attention trajectory prediction, Adaptive DBSCAN, Shapley game",
+    "dss": "Multi-scale maritime traffic complexity evaluation & VTS DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 38.65, "lng": 121.1
+  },
+  {
+    "paper_id": "Paper 75",
+    "title": "Time-evolving graph-based approach for multi-ship encounter analysis: Insights into ship behavior across different scenario complexity levels",
+    "authors": "Yuerong Yu, Kezhong Liu, Wei Kong, Xuri Xin",
+    "year": 2025,
+    "venue": "Transportation Research Part A: Policy and Practice",
+    "region": "Ningbo-Zhoushan Port, China",
+    "systems": "AIS",
+    "threats": "Multi-ship encounter collisions, dynamic spatiotemporal interference",
+    "method": "Time-Evolving Graph Sequences (EGS), Singular Value Decomposition (SVD) matrix energy",
+    "dss": "Topological traffic complexity & encounter analysis DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 29.87, "lng": 121.6
+  },
+  {
+    "paper_id": "Paper 76",
+    "title": "Research on Time Characteristics of Near Miss in Bohai Sea",
+    "authors": "Yangyu Zhou, Jiaxuan Yang, Yuan Liu, Jiaguo Liu",
+    "year": 2020,
+    "venue": "IEEE Access",
+    "region": "Bohai Sea, China",
+    "systems": "AIS",
+    "threats": "Near-misses, ship-to-ship collisions",
+    "method": "Navigation safety domain model, Near-miss duration calculation, K-Means",
+    "dss": "Temporal near-miss risk characterization DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 1"],
+    "lat": 38.8, "lng": 119.5
+  },
+  {
+    "paper_id": "Paper 77",
+    "title": "Grounding-aware RRT* for Path Planning and Safe Navigation of Marine Crafts in Confined Waters",
+    "authors": "Thomas T. Enevoldsen, Roberto Galeazzi",
+    "year": 2021,
+    "venue": "IFAC PapersOnLine",
+    "region": "Little Belt & Great Belt, Denmark",
+    "systems": "AIS, ECDIS/ENC",
+    "threats": "Ship grounding, collision in restricted waters",
+    "method": "Grounding-aware RRT* path planning, Multivariate Kernel Density Estimation (MKDE)",
+    "dss": "Grounding-free autonomous route optimization DSS",
+    "threat_category": "Grounding & UKC",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 2", "Pattern 3"],
+    "lat": 55.3, "lng": 10.9
+  },
+  {
+    "paper_id": "Paper 79",
+    "title": "Anomaly detection of ship behavior based on deep neural networks",
+    "authors": "Yaqing Shu, Ao Dong, Chengyong Liu, Langxiong Gan, Lan Song",
+    "year": 2026,
+    "venue": "Reliability Engineering & System Safety",
+    "region": "Shanghai Port, China",
+    "systems": "AIS",
+    "threats": "Abnormal vessel behaviors (course/speed anomalies), illicit activities",
+    "method": "HDBSCAN route clustering, HybridAttn-BiRNN deep neural network",
+    "dss": "Real-time trajectory prediction & behavior anomaly detection DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 31.2, "lng": 121.5
+  },
+  {
+    "paper_id": "Paper 83",
+    "title": "Spatio-temporal pattern evolution simulation of maritime accidents with multi-source data for waterway safety management",
+    "authors": "Mingyang Shi, Jianjun Wu, Shenping Hu, Yahong Zhu",
+    "year": 2026,
+    "venue": "Ocean Engineering",
+    "region": "Shanghai section of the Yangtze River",
+    "systems": "AIS",
+    "threats": "Vessel collisions, collision oil spills, tidal current hazards",
+    "method": "Spatial complex network modeling, 2D oil spill dispersion hydrodynamic simulation",
+    "dss": "Spatiotemporal accident pattern evolution & oil spill emergency DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 31.3, "lng": 121.5
+  },
+  {
+    "paper_id": "Paper 87",
+    "title": "Collision risk assessment for ships’ routeing waters: An information entropy approach with Automatic Identification System (AIS) data",
+    "authors": "Hongxiang Feng, Manel Grifoll, Zhongzhen Yang, Pengjun Zheng",
+    "year": 2022,
+    "venue": "Ocean and Coastal Management",
+    "region": "Ningbo-Zhoushan Port, China",
+    "systems": "AIS",
+    "threats": "Ship collision hazards, navigation disorder in chokepoints",
+    "method": "Course Over Ground (COG) Information Entropy (Shannon entropy), K-Means",
+    "dss": "Information entropy-based collision risk classification DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 1"],
+    "lat": 29.95, "lng": 121.65
+  },
+  {
+    "paper_id": "Paper 93",
+    "title": "Regional Multi-ship Collision Risk Analysis Based on Velocity Obstacle Method: a Case Study on the Pearl River Estuary",
+    "authors": "Liu et al",
+    "year": 2024,
+    "venue": "Ocean Engineering",
+    "region": "Pearl River Estuary, China",
+    "systems": "AIS",
+    "threats": "Multi-ship encounter collisions, regional collision risk, traffic congestion",
+    "method": "DBSCAN spatial clustering, Velocity Obstacle + QSD (QSD-TCR), Shapley Value game",
+    "dss": "Microscopic & macroscopic multi-ship regional collision risk DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 1"],
+    "lat": 22.1, "lng": 113.6
+  },
+  {
+    "paper_id": "Paper 94",
+    "title": "Optimization of surveillance vessel network planning in maritime command and control systems by fusing METOC & AIS vessel traffic information",
+    "authors": "Fabbri et al",
+    "year": 2015,
+    "venue": "IEEE Journal of Oceanic Engineering",
+    "region": "Gulf of Aden (High Risk Area for Piracy)",
+    "systems": "AIS, Naval C2 Surveillance Assets",
+    "threats": "Maritime piracy, pirate attacks, suspicious movements",
+    "method": "METOC + AIS multi-source fusion, Pirate Attack Risk Surface (PARS), AMGA2 Genetic OPP",
+    "dss": "Anti-piracy OPP-DSS for optimal surveillance asset allocation",
+    "threat_category": "Maritime Piracy",
+    "method_category": "Systemic & Risk Modeling",
+    "patterns": ["Pattern 5", "Pattern 2"],
+    "lat": 12.0, "lng": 48.0
+  },
+  {
+    "paper_id": "Paper 97",
+    "title": "Risk Perception Oriented Autonomous Ship Navigation",
+    "authors": "Zhang, R.",
+    "year": 2020,
+    "venue": "Kobe University (PhD Dissertation)",
+    "region": "Chengshantou VTS Zone, Yellow Sea, China",
+    "systems": "AIS, RADAR, Optical Cameras",
+    "threats": "Autonomous ship collisions (MASS), target loss/occlusion",
+    "method": "Deep Reinforcement Learning (DQN), GANs with Policy Gradient, ResNet18, YOLOv3",
+    "dss": "Risk-perception autonomous collision avoidance DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 1"],
+    "lat": 37.4, "lng": 122.5
+  },
+  {
+    "paper_id": "Paper 99",
+    "title": "Ship Collision detection and classification employing AIS data",
+    "authors": "Martelli, M., Žuškin, S., Cellerino, E., Zaccone, R.",
+    "year": 2023,
+    "venue": "TransNav",
+    "region": "Port of Genoa approaches, Ligurian Sea, Italy",
+    "systems": "AIS",
+    "threats": "Ship collision risks, COLREGs violations (head-on, crossing, overtaking)",
+    "method": "Multi-tier spatial safety domains, Kinematic trajectory intersection model",
+    "dss": "Real-time COLREGs collision detection & classification DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Kinematics & Spatial Domains",
+    "patterns": ["Pattern 2", "Pattern 3"],
+    "lat": 44.4, "lng": 8.93
+  },
+  {
+    "paper_id": "Paper 104",
+    "title": "Incorporating Haversine Formula into DBSCAN for AIS Data-Based Ship Encounter Detection",
+    "authors": "Asana et al",
+    "year": 2025,
+    "venue": "Engineering Letters",
+    "region": "Lombok Strait & ALKI II, Indonesia",
+    "systems": "AIS",
+    "threats": "Multi-ship collision encounters in narrow chokepoints",
+    "method": "DBSCAN-Haversine spatial clustering, Pairwise Collision Risk Index (CRI)",
+    "dss": "Geodesic multi-ship encounter detection & early-warning DSS",
+    "threat_category": "Collision & COLREGs",
+    "method_category": "Spatial Clustering & Machine Learning",
+    "patterns": ["Pattern 2"],
+    "lat": -8.45, "lng": 115.7
+  }
+];
+
+        const patternInsights = {
+            'ALL': {
+                title: 'Overview: 40 SLR Primary Studies (Multi-Tag Analysis)',
+                text: 'Studies can belong to multiple patterns simultaneously (e.g. Dover Strait combines Chokepoint Constraints + Cyber GPS Spoofing + Human Element). The literature exhibits strong geospatial specialization.'
+            },
+            'Pattern 1': {
+                title: 'Pattern 1: Mega-Ports & Estuaries',
+                text: '<b>Focus:</b> Yangtze/Pearl Estuaries & Zhoushan. Extreme density & intersecting VTS channels.<br><b>Dominant Method:</b> Big Data AIS Mining, DBSCAN, Transformers, GNNs.<br><b>Research Gap:</b> Integrating OT/ICS cyber resilience (e.g. VDR tampering) into physical traffic density models.'
+            },
+            'Pattern 2': {
+                title: 'Pattern 2: Chokepoints & Straits',
+                text: '<b>Focus:</b> Malacca, Dover, Bosphorus, Lombok Straits. Spatial boundary constraints.<br><b>Dominant Method:</b> Velocity Obstacle (VO) kinematics, STPA-SafeSec, HEART.<br><b>Research Gap:</b> Automated fail-safe handover from ECDIS spoofing alerts to COLREGs path re-routing.'
+            },
+            'Pattern 3': {
+                title: 'Pattern 3: European Coastal & Cyber Integrity',
+                text: '<b>Focus:</b> Baltic, Brest, Elba, Rotterdam. Dense VTS & signal integrity.<br><b>Dominant Method:</b> Expert Rule-based Systems, Getis-Ord Gi* Spatial Autocorrelation.<br><b>Research Gap:</b> Standardized protocols for integrating cyber anomaly alerts into ship SMS checklists.'
+            },
+            'Pattern 4': {
+                title: 'Pattern 4: Arctic Routes & Polar Hazards',
+                text: '<b>Focus:</b> Northern Sea Route (NSR), Barents Sea. Extreme ice & GNSS loss.<br><b>Dominant Method:</b> IMO POLARIS Ice Indexing, Fuzzy Bayesian Networks, Ice Overlays.<br><b>Research Gap:</b> Dynamic cyber-physical risk models under extreme cold and total satellite loss.'
+            },
+            'Pattern 5': {
+                title: 'Pattern 5: Asymmetric & Global Corridors',
+                text: '<b>Focus:</b> Gulf of Mexico (Panama City), Mississippi River (Southwest Pass), Gulf of Aden.<br><b>Dominant Method:</b> Multi-source Data Fusion (AIS + Hydrographic Bathymetry + NOAA Tides), AMGA2 Optimization.<br><b>Research Gap:</b> Underkeel Clearance (UKC) & Cyber-Physical risk integration in shallow riverine fairways.'
+            }
+        };
+
+        const map = L.map('map').setView([20.0, 10.0], 2.5);
+
+        const tileDark = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', maxZoom: 16
+        }).addTo(map);
+
+        function getThreatColor(cat) {
+            switch(cat) {
+                case 'Cyber-Attacks & Spoofing': return '#ef4444';
+                case 'Maritime Piracy':          return '#f97316';
+                case 'Environmental & Ice Hazards': return '#06b6d4';
+                case 'Grounding & UKC':          return '#eab308';
+                default:                         return '#3b82f6';
+            }
+        }
+
+        let heatLayer = null;
+        let clusterGroup = null;
+
+        try {
+            if (typeof L.markerClusterGroup === 'function') {
+                clusterGroup = L.markerClusterGroup({ maxClusterRadius: 35 });
+            }
+        } catch(e) {}
+
+        const markersList = [];
+        let activePatternFilter = 'ALL';
+
+        function updateTabLabels() {
+            const counts = { 'Pattern 1': 0, 'Pattern 2': 0, 'Pattern 3': 0, 'Pattern 4': 0, 'Pattern 5': 0 };
+            papersData.forEach(p => {
+                p.patterns.forEach(pat => {
+                    if (counts[pat] !== undefined) counts[pat]++;
+                });
+            });
+            
+            document.getElementById('btn-all').innerText = `🌐 All Patterns (${papersData.length} Papers)`;
+            document.getElementById('btn-p1').innerText = `Pattern 1: Mega-Ports & Estuaries (${counts['Pattern 1']} Papers)`;
+            document.getElementById('btn-p2').innerText = `Pattern 2: Chokepoints & Straits (${counts['Pattern 2']} Papers)`;
+            document.getElementById('btn-p3').innerText = `Pattern 3: European Coastal & Cyber Integrity (${counts['Pattern 3']} Papers)`;
+            document.getElementById('btn-p4').innerText = `Pattern 4: Arctic Routes & Polar Hazards (${counts['Pattern 4']} Papers)`;
+            document.getElementById('btn-p5').innerText = `Pattern 5: Asymmetric & Global Corridors (${counts['Pattern 5']} Papers)`;
+        }
+
+        function updateHeatmap(visiblePapers) {
+            if (heatLayer) map.removeLayer(heatLayer);
+            heatLayer = null;
+            
+            const heatEnabled = document.getElementById('toggle-heatmap').checked;
+            if (heatEnabled && typeof L.heatLayer === 'function' && visiblePapers.length > 0) {
+                const heatPoints = visiblePapers.map(p => [p.lat, p.lng, 1.0]);
+                heatLayer = L.heatLayer(heatPoints, { 
+                    radius: 35, 
+                    blur: 18, 
+                    minOpacity: 0.35,
+                    max: 1.0,
+                    gradient: { 0.2: '#0000ff', 0.4: '#00ffff', 0.6: '#00ff00', 0.8: '#ffff00', 1.0: '#ff0000' } 
+                }).addTo(map);
+            }
+        }
+
+        function renderMarkers() {
+            if (clusterGroup) clusterGroup.clearLayers();
+            markersList.forEach(m => map.removeLayer(m));
+            markersList.length = 0;
+
+            const activeThreats = Array.from(document.querySelectorAll('.filter-threat:checked')).map(cb => cb.value);
+            const visiblePapers = [];
+            const isHeatmapOnly = document.getElementById('toggle-heatmap-only').checked;
+
+            papersData.forEach(p => {
+                const matchesPattern = (activePatternFilter === 'ALL') || p.patterns.includes(activePatternFilter);
+                
+                if (matchesPattern && activeThreats.includes(p.threat_category)) {
+                    visiblePapers.push(p);
+                    const lat = p.lat;
+                    const lng = p.lng;
+
+                    const marker = L.circleMarker([lat, lng], {
+                        radius: 9,
+                        fillColor: getThreatColor(p.threat_category),
+                        color: '#ffffff',
+                        weight: 2,
+                        opacity: isHeatmapOnly ? 0 : 1,
+                        fillOpacity: isHeatmapOnly ? 0 : 0.95
+                    });
+
+                    const popupHtml = `
+                        <div class="popup-card">
+                            <h4>${p.paper_id}: ${p.title}</h4>
+                            <div style="margin-bottom:6px;">
+                                <span class="popup-tag" style="background:${getThreatColor(p.threat_category)};">${p.threat_category}</span>
+                            </div>
+                            <p style="margin:2px 0;"><b>👤 Authors:</b> ${p.authors} (${p.year})</p>
+                            <p style="margin:2px 0;"><b>📖 Journal:</b> ${p.venue}</p>
+                            <p style="margin:2px 0;"><b>📍 Location:</b> ${p.region}</p>
+                            <p style="margin:2px 0;"><b>🖥️ Systems:</b> ${p.systems}</p>
+                            <p style="margin:2px 0;"><b>⚙️ Method:</b> ${p.method_category}</p>
+                            <p style="margin:2px 0;"><b>🛡️ Risk / DSS:</b> ${p.dss}</p>
+                            <div class="pattern-banner">
+                                <b>🧩 Pattern Tags:</b><br>${p.patterns.join(' | ')}
+                            </div>
+                        </div>
+                    `;
+
+                    marker.bindPopup(popupHtml);
+                    markersList.push(marker);
+
+                    if (clusterGroup && !isHeatmapOnly) {
+                        clusterGroup.addLayer(marker);
+                    } else if (!isHeatmapOnly) {
+                        marker.addTo(map);
+                    }
+                }
+            });
+
+            const isClusterChecked = document.getElementById('toggle-cluster').checked;
+            if (clusterGroup && isClusterChecked && !isHeatmapOnly) {
+                map.addLayer(clusterGroup);
+            } else {
+                if (clusterGroup) map.removeLayer(clusterGroup);
+                if (!isHeatmapOnly) {
+                    markersList.forEach(m => m.addTo(map));
+                }
+            }
+
+            updateHeatmap(visiblePapers);
+            document.getElementById('active-count').innerText = `Active Papers: ${visiblePapers.length} / ${papersData.length}`;
+        }
+
+        function selectPattern(patKey) {
+            activePatternFilter = patKey;
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.id === 'btn-all' && patKey === 'ALL') {
+                    btn.classList.add('active');
+                } else if (btn.id === 'btn-p1' && patKey === 'Pattern 1') {
+                    btn.classList.add('active');
+                } else if (btn.id === 'btn-p2' && patKey === 'Pattern 2') {
+                    btn.classList.add('active');
+                } else if (btn.id === 'btn-p3' && patKey === 'Pattern 3') {
+                    btn.classList.add('active');
+                } else if (btn.id === 'btn-p4' && patKey === 'Pattern 4') {
+                    btn.classList.add('active');
+                } else if (btn.id === 'btn-p5' && patKey === 'Pattern 5') {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            const ins = patternInsights[patKey] || patternInsights['ALL'];
+            document.getElementById('insight-box').querySelector('h4').innerHTML = ins.title;
+            document.getElementById('insight-text').innerHTML = ins.text;
+
+            if (patKey === 'Pattern 1') map.flyTo([30.5, 121.5], 6);
+            else if (patKey === 'Pattern 2') map.flyTo([25.0, 80.0], 3.5);
+            else if (patKey === 'Pattern 3') map.flyTo([52.0, 10.0], 4.5);
+            else if (patKey === 'Pattern 4') map.flyTo([72.0, 50.0], 3.5);
+            else if (patKey === 'Pattern 5') map.flyTo([24.0, -40.0], 3);
+            else map.flyTo([20.0, 10.0], 2.5);
+
+            renderMarkers();
+        }
+
+        updateTabLabels();
+        renderMarkers();
+
+        document.querySelectorAll('.filter-threat').forEach(cb => {
+            cb.addEventListener('change', renderMarkers);
+        });
+
+        document.getElementById('toggle-cluster').addEventListener('change', (e) => {
+            if (clusterGroup && e.target.checked) {
+                markersList.forEach(m => map.removeLayer(m));
+                map.addLayer(clusterGroup);
+            } else {
+                if (clusterGroup) map.removeLayer(clusterGroup);
+                markersList.forEach(m => m.addTo(map));
+            }
+        });
+
+        document.getElementById('toggle-heatmap').addEventListener('change', () => {
+            renderMarkers();
+        });
+
+        document.getElementById('toggle-heatmap-only').addEventListener('change', () => {
+            renderMarkers();
+        });
+    </script>
+</body>
+</html>
