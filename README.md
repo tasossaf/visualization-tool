@@ -9,7 +9,7 @@ The dashboard bridges real-time vessel traffic data analytics with shipboard Saf
 ## 🌐 Live Interactive Access (Zero-Installation)
 
 You can run and interact with the live dashboard directly in any modern web browser:
-👉 **[Launch Maritime Risk Dashboard Live](https://<tasossaf>.github.io/<visualization-tool>/)**
+👉 **[Launch Maritime Risk Dashboard Live](https://<tasossaf>.github.io/visualization-tool/)**
 
 
 ---
