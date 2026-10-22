@@ -1073,7 +1073,7 @@
 
                     const popupHtml = `
                         <div class="popup-card">
-                            <h4>${p.study_id}: ${p.title}</h4>
+                            <h4>${p.title}</h4>
                             <div style="margin-bottom:6px;">
                                 <span class="popup-tag" style="background:${getThreatColor(p.threat_category)};">${p.threat_category}</span>
                                 <span class="popup-tag" style="background:#475569; margin-left:4px;">${p.method_category}</span>
@@ -1153,7 +1153,7 @@
                         const cardHtml = `
                             <div class="outlier-card" id="${cardId}">
                                 <div class="outlier-card-header">
-                                    <span>📍 ${study.study_id} (${study.region.split('(')[0].trim()})</span>
+                                    <span>📍 ${study.region.split('(')[0].trim()}</span>
                                     <span style="cursor:pointer;" onclick="document.getElementById('${cardId}').remove()">✕</span>
                                 </div>
                                 <div class="outlier-card-map" id="${mapDivId}"></div>
@@ -1179,7 +1179,7 @@
                             color: '#fff',
                             weight: 2,
                             fillOpacity: 0.95
-                        }).addTo(outMap).bindPopup(`<b>${study.study_id}: ${study.title}</b><br>📍 ${study.region}`);
+                        }).addTo(outMap).bindPopup(`<b>${study.title}</b><br>📍 ${study.region}`);
 
                         outlierMapsInstances.push(outMap);
                         setTimeout(() => { outMap.invalidateSize(); }, 200);
